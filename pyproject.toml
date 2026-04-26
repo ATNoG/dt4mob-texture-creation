@@ -1,0 +1,24 @@
+[project]
+name = "texture-creation"
+version = "0.1.0"
+description = "Create a color texture for a given input polygon based on the Quality_flag from the respective csv file"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.35.0",
+    "httpx>=0.28.0",
+    "numpy>=2.4.4",
+    "pandas>=3.0.2",
+    "pillow>=12.2.0",
+    "pydantic>=2.0.0",
+    "pyvista>=0.47.3",
+    "scipy>=1.17.1",
+    "trimesh>=4.11.5",
+    "xatlas>=0.0.11",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.10",
+    "ty>=0.0.29",
+]

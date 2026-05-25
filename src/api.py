@@ -3,14 +3,31 @@ from __future__ import annotations
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 import logging
+import os
 
 import httpx
 import pandas as pd
 from pandas.io.common import StringIO
-
-from src.models import AuthRequest, AuthResponse
+from pydantic import BaseModel
 
 log = logging.getLogger(__name__)
+
+# URL configuration
+BASE_URL = os.environ.get("BASE_URL")
+AUTH_URL_TEMPLATE = "{base_url}/{tenant}/api/accounts/login"
+CSV_URL_TEMPLATE = "{base_url}/{tenant}/api/v1/activos-geotecnicos/{id}/modelo/{modelType}/download"
+POLYGON_URL_TEMPLATE = "{base_url}/{tenant}/api/v1/activos-geotecnicos/{id}/modelo/{modelType}/download"
+POINT_CLOUD_TYPE = "ActivoGeotecnicoModeloModelType_CSV_Point_Cloud"
+POLYGON_TYPE = "ActivoGeotecnicoModeloModelType_Ply"
+
+
+class AuthRequest(BaseModel):
+    username: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    token: str
 
 
 def fetch_token(auth_url: str, username: str, password: str) -> str:

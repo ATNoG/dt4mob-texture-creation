@@ -5,28 +5,22 @@ import logging
 import os
 import tempfile
 
-import httpx
 import numpy as np
 import pyvista as pv
-from botocore.client import BaseClient
 
-from src.api import _get_api_last_modified, fetch_csv, fetch_polygon, fetch_token
-from src.colormap import compute_displacement_colors, get_color
-from src.config import (
+from src.api import (
     AUTH_URL_TEMPLATE,
     BASE_URL,
     CSV_URL_TEMPLATE,
     POINT_CLOUD_TYPE,
     POLYGON_TYPE,
     POLYGON_URL_TEMPLATE,
+    fetch_csv,
+    fetch_token,
 )
-from src.s3 import (
-    _get_s3_last_modified,
-    build_s3_client,
-    download_from_s3,
-    get_s3_client,
-    upload_to_s3,
-)
+from src.colormap import compute_displacement_colors, get_color
+from src.mesh import ensure_mesh_in_s3, should_skip_processing
+from src.s3 import get_s3_client, upload_to_s3
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger(__name__)
@@ -63,44 +57,6 @@ def resolve_arg(args: argparse.Namespace, name: str) -> str:
     )
 
 
-def should_skip_processing(
-    s3_client: BaseClient,
-    bucket: str,
-    resource_id: str,
-    csv_url: str,
-    token: str,
-) -> bool:
-    alarmist_key = f"{resource_id}_alarmist.gltf"
-    displacement_key = f"{resource_id}_displacement.gltf"
-
-    alarmist_lm = _get_s3_last_modified(s3_client, bucket, alarmist_key)
-    displacement_lm = _get_s3_last_modified(s3_client, bucket, displacement_key)
-
-    if alarmist_lm is None or displacement_lm is None:
-        log.info("S3 output file(s) not found, proceeding with processing")
-        return False
-
-    s3_lastmodified = alarmist_lm if alarmist_lm < displacement_lm else displacement_lm
-
-    api_last_modified = _get_api_last_modified(csv_url, token)
-    if api_last_modified is None:
-        log.info("Could not determine API Last-Modified, proceeding with processing")
-        return False
-
-    log.info(
-        "S3 output last modified: %s, API source last modified: %s",
-        s3_lastmodified,
-        api_last_modified,
-    )
-
-    if s3_lastmodified >= api_last_modified:
-        log.info("S3 output is up-to-date, skipping processing")
-        return True
-
-    log.info("S3 output is stale, proceeding with processing")
-    return False
-
-
 def main() -> None:
     args = parse_args()
 
@@ -125,47 +81,16 @@ def main() -> None:
 
     s3_client, bucket = get_s3_client()
 
+    mesh = ensure_mesh_in_s3(
+        s3_client, bucket, resource_id, polygon_url, token, args.mesh
+    )
+
     if should_skip_processing(s3_client, bucket, resource_id, csv_url, token):
         log.info("Output is up-to-date. Exiting.")
         return
 
     log.info("Fetching CSV data...")
     df = fetch_csv(csv_url, token)
-
-    log.info("Fetching mesh...")
-    mesh = None
-    try:
-        polygon_bytes = fetch_polygon(polygon_url, token)
-        with tempfile.NamedTemporaryFile(suffix=".ply", delete=True) as tmp_mesh:
-            tmp_mesh.write(polygon_bytes)
-            tmp_mesh.flush()
-            mesh = pv.read(tmp_mesh.name)
-            log.info("Mesh fetched from API")
-    except httpx.HTTPError as e:
-        log.warning("Failed to fetch mesh from API: %s", e)
-        s3_input_bucket = os.environ.get("S3_INPUT_BUCKET")
-        s3_input_key = os.environ.get("S3_INPUT_KEY")
-        if s3_input_bucket and s3_input_key:
-            try:
-                s3_client = build_s3_client()
-                with tempfile.NamedTemporaryFile(
-                    suffix=".ply", delete=True
-                ) as tmp_mesh:
-                    download_from_s3(
-                        s3_client, s3_input_bucket, s3_input_key, tmp_mesh.name
-                    )
-                    mesh = pv.read(tmp_mesh.name)
-                    log.info("Mesh fetched from S3")
-            except Exception as s3_err:
-                log.error("Failed to download mesh from S3: %s", s3_err)
-        if mesh is None and args.mesh is not None:
-            log.info("Using local mesh file: %s", args.mesh)
-            mesh = pv.read(args.mesh)
-        if mesh is None:
-            log.error("No mesh source available (API, S3, or local file). Exiting.")
-            raise FileNotFoundError(
-                "The mesh could not be fetched from the API, S3, or provided by the user"
-            )
 
     log.info("Processing data...")
     csv_colors = np.array([get_color(f) for f in df["Quality_flag"]])

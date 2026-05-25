@@ -88,6 +88,22 @@ def upload_to_s3(
         raise
 
 
+def upload_bytes_to_s3(
+    client: BaseClient, data: bytes, bucket: str, object_key: str
+) -> None:
+    try:
+        client.put_object(Bucket=bucket, Key=object_key, Body=data)
+    except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code", "Unknown")
+        error_message = e.response.get("Error", {}).get("Message", str(e))
+        log.error(
+            "S3 upload failed - Error code: %s, Message: %s",
+            error_code,
+            error_message,
+        )
+        raise
+
+
 def _get_s3_last_modified(
     client: BaseClient, bucket: str, object_key: str
 ) -> datetime | None:

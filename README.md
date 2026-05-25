@@ -1,7 +1,7 @@
 # Mesh Texture Generator
 
 This project provides a Python-based command-line tool that generates textured 3D meshes
-(`.gltf` format) from a `.ply` mesh file and point cloud data fetched from an API.
+(`.gltf` format) from a `.ply` mesh and point cloud data fetched from an API.
 
 The tool generates **two textures** for every mesh:
 1. **Alarmist Texture** - Colorizes the mesh based on quality flags (alert/alarm/OK)
@@ -35,8 +35,10 @@ The tool performs the following steps:
    - Smooth gradient between these values (5mm intervals)
    - Missing `dist_3d_m` values default to green (no displacement)
 
-4. **Mesh Processing** - Loads the target mesh from the PLY file, extracts the
-   surface geometry, and interpolates colors from the CSV point cloud onto the mesh.
+4. **Mesh Processing** - Loads the target mesh, first attempting to retrieve it
+   from the WebAPI, and if that fails, from the PLY file stored in the S3
+   bucket provided. Then extracts the surface geometry, and interpolates colors
+   from the CSV point cloud onto the mesh.
 
 5. **Export** - Renders and exports both textured meshes as `.gltf` files.
 
@@ -71,13 +73,29 @@ uv run main.py --mesh <path_to_ply> --tenant <tenant> --id <id> --username <user
 
 | Argument    | Description                   | Required | Environment Variable |
 |-------------|-------------------------------|----------|----------------------|
-| `--mesh`    | Path to the input PLY file    | Yes      | -                    |
+| `--mesh`    | Path to the input PLY file    | No*      | -                    |
 | `--tenant`  | Tenant identifier             | Yes      | `TENANT`             |
 | `--id`      | Resource ID                   | Yes      | `ID`                 |
 | `--username`| Authentication username        | Yes      | `USERNAME`           |
 | `--password`| Authentication password        | Yes      | `PASSWORD`           |
 
 Priority: CLI argument > environment variable
+
+### Environment Variables
+
+| Variable           | Required | Description                                    |
+|--------------------|----------|------------------------------------------------|
+| `BASE_URL`         | Yes      | API base URL                                   |
+| `S3_ENDPOINT`      | Yes      | S3-compatible endpoint URL                     |
+| `S3_ACCESS_KEY`    | Yes      | S3 access key                                  |
+| `S3_SECRET_KEY`    | Yes      | S3 secret key                                  |
+| `S3_BUCKET`        | Yes      | S3 bucket name for output files                |
+| `TENANT`           | Yes      | Tenant identifier (can also use `--tenant`)    |
+| `ID`               | Yes      | Resource ID (can also use `--id`)              |
+| `USERNAME`         | Yes      | Auth username (can also use `--username`)       |
+| `PASSWORD`         | Yes      | Auth password (can also use `--password`)       |
+| `S3_INPUT_BUCKET`  | No       | S3 bucket for input mesh (fallback if API fails) |
+| `S3_INPUT_KEY`     | No       | S3 key for input mesh (fallback if API fails)   |
 
 ### Example
 
@@ -93,12 +111,17 @@ uv run main.py \
 Or using environment variables:
 
 ```bash
+export BASE_URL=https://api.example.com
+export S3_ENDPOINT=http://localhost:8333
+export S3_ACCESS_KEY=your-access-key
+export S3_SECRET_KEY=your-secret-key
+export S3_BUCKET=texturemap
 export TENANT=mycompany
 export ID=12345
 export USERNAME=admin
 export PASSWORD=secret
 
-uv run main.py --mesh ./meshes/model.ply --tenant mycompany
+uv run main.py --mesh ./meshes/model.ply
 ```
 
 The output files will be saved to your S3 bucket as:

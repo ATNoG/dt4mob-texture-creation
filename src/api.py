@@ -47,5 +47,5 @@ def _get_api_last_modified(url: str, token: str) -> datetime | None:
             return None
         return parsedate_to_datetime(last_modified)
     except httpx.HTTPError as e:
-        log.warning("Failed to HEAD API URL %s: %s", url, e)
+        log.warning("Failed to HEAD API: %s", e)
         return None

@@ -43,16 +43,15 @@ def get_s3_client() -> tuple[BaseClient, str]:
 
     try:
         s3_client.head_bucket(Bucket=bucket)
-        log.info("S3 bucket '%s' is accessible", bucket)
+        log.info("S3 bucket is accessible")
     except ClientError as e:
         error_code = e.response.get("Error", {}).get("Code", "Unknown")
         if error_code == "403" or "AccessDenied" in str(e):
             log.warning(
-                "S3 Access Denied for bucket '%s'. Check credentials and permissions.",
-                bucket,
+                "S3 Access Denied for bucket. Check credentials and permissions."
             )
         elif error_code == "404":
-            log.warning("S3 bucket '%s' not found", bucket)
+            log.warning("S3 bucket not found")
         else:
             log.warning("S3 connectivity check failed: %s", e)
 
@@ -86,13 +85,6 @@ def upload_to_s3(
         log.error(
             "S3 upload failed - Error code: %s, Message: %s", error_code, error_message
         )
-        log.error(
-            "S3 Config - Endpoint: %s, Bucket: %s, File: %s, Key: %s",
-            client.meta.endpoint_url,
-            bucket,
-            file_path,
-            object_key,
-        )
         raise
 
 
@@ -105,7 +97,5 @@ def _get_s3_last_modified(
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") == "404":
             return None
-        log.warning(
-            "Failed to HEAD S3 object %s/%s: %s", bucket, object_key, e
-        )
+        log.warning("Failed to HEAD S3 object /%s: %s", object_key, e)
         return None

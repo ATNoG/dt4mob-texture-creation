@@ -30,6 +30,7 @@ from src.s3 import (
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def parse_args() -> argparse.Namespace:
@@ -154,9 +155,7 @@ def main() -> None:
                         s3_client, s3_input_bucket, s3_input_key, tmp_mesh.name
                     )
                     mesh = pv.read(tmp_mesh.name)
-                    log.info(
-                        "Mesh fetched from S3: %s/%s", s3_input_bucket, s3_input_key
-                    )
+                    log.info("Mesh fetched from S3")
             except Exception as s3_err:
                 log.error("Failed to download mesh from S3: %s", s3_err)
         if mesh is None and args.mesh is not None:
@@ -200,7 +199,7 @@ def main() -> None:
 
         object_key = f"{resource_id}_alarmist.gltf"
         upload_to_s3(s3_client, tmp_path, bucket, object_key)
-        log.info("Successfully uploaded %s/%s to S3", bucket, object_key)
+        log.info("Successfully uploaded /%s to S3", object_key)
 
     with tempfile.NamedTemporaryFile(suffix=".gltf", delete=True) as tmp:
         tmp_path = tmp.name
@@ -211,7 +210,7 @@ def main() -> None:
 
         object_key = f"{resource_id}_displacement.gltf"
         upload_to_s3(s3_client, tmp_path, bucket, object_key)
-        log.info("Successfully uploaded %s/%s to S3", bucket, object_key)
+        log.info("Successfully uploaded /%s to S3", object_key)
 
 
 if __name__ == "__main__":

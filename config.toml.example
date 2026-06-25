@@ -1,0 +1,17 @@
+[api]
+base_url = ""
+
+[auth]
+tenant = ""
+resource_id = ""
+username = ""
+password = ""
+
+[s3]
+endpoint = ""
+access_key = ""
+secret_key = ""
+bucket = ""
+
+[mesh]
+path = ""

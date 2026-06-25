@@ -7,7 +7,8 @@ import httpx
 import pyvista as pv
 from botocore.client import BaseClient
 
-from src.api import _get_api_last_modified, fetch_polygon
+from settings import settings
+from src.api import _get_api_last_modified, csv_url, fetch_polygon, polygon_url
 from src.s3 import _get_s3_last_modified, download_from_s3, upload_bytes_to_s3
 
 log = logging.getLogger(__name__)
@@ -16,11 +17,10 @@ log = logging.getLogger(__name__)
 def ensure_mesh_in_s3(
     s3_client: BaseClient,
     bucket: str,
-    resource_id: str,
-    polygon_url: str,
     token: str,
     mesh_path: str | None = None,
 ) -> pv.DataObject:
+    resource_id = settings.auth.resource_id
     ply_key = f"{resource_id}.ply"
 
     if mesh_path is not None:
@@ -32,7 +32,8 @@ def ensure_mesh_in_s3(
         return mesh
 
     s3_ply_lm = _get_s3_last_modified(s3_client, bucket, ply_key)
-    polygon_api_lm = _get_api_last_modified(polygon_url, token)
+
+    polygon_api_lm = _get_api_last_modified(polygon_url(), token)
 
     if s3_ply_lm is None and polygon_api_lm is None:
         raise FileNotFoundError(
@@ -46,7 +47,7 @@ def ensure_mesh_in_s3(
     if need_api_fetch:
         try:
             log.info("Fetching mesh from API...")
-            polygon_bytes = fetch_polygon(polygon_url, token)
+            polygon_bytes = fetch_polygon(token)
             upload_bytes_to_s3(s3_client, polygon_bytes, bucket, ply_key)
             log.info("Uploaded mesh from API to S3 as %s", ply_key)
             with tempfile.NamedTemporaryFile(suffix=".ply", delete=True) as tmp:
@@ -71,10 +72,9 @@ def ensure_mesh_in_s3(
 def should_skip_processing(
     s3_client: BaseClient,
     bucket: str,
-    resource_id: str,
-    csv_url: str,
     token: str,
 ) -> bool:
+    resource_id = settings.auth.resource_id
     ply_key = f"{resource_id}.ply"
     if _get_s3_last_modified(s3_client, bucket, ply_key) is None:
         raise FileNotFoundError(
@@ -93,7 +93,7 @@ def should_skip_processing(
 
     s3_lastmodified = alarmist_lm if alarmist_lm < displacement_lm else displacement_lm
 
-    api_last_modified = _get_api_last_modified(csv_url, token)
+    api_last_modified = _get_api_last_modified(csv_url(), token)
     if api_last_modified is None:
         log.info("Could not determine API Last-Modified, proceeding with processing")
         return False

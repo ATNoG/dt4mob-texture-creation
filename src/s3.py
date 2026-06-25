@@ -2,42 +2,36 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-import os
 
 import boto3
 from botocore.client import BaseClient
 from botocore.exceptions import ClientError
 
+from settings import settings
+
 log = logging.getLogger(__name__)
 
 
 def build_s3_client() -> BaseClient:
-    endpoint = os.environ.get("S3_ENDPOINT")
-    access_key = os.environ.get("S3_ACCESS_KEY")
-    secret_key = os.environ.get("S3_SECRET_KEY")
-
-    for var, value in [
-        ("S3_ENDPOINT", endpoint),
-        ("S3_ACCESS_KEY", access_key),
-        ("S3_SECRET_KEY", secret_key),
-    ]:
-        if value is None:
-            raise SystemExit(f"Error: '{var}' environment variable is not set")
+    if not all([settings.s3.endpoint, settings.s3.access_key, settings.s3.secret_key]):
+        raise SystemExit(
+            "Error: 's3.endpoint', 's3.access_key', and 's3.secret_key' must be set"
+        )
 
     return boto3.client(
         "s3",
-        endpoint_url=endpoint,
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
+        endpoint_url=settings.s3.endpoint,
+        aws_access_key_id=settings.s3.access_key,
+        aws_secret_access_key=settings.s3.secret_key,
         verify=False,
     )
 
 
 def get_s3_client() -> tuple[BaseClient, str]:
-    bucket = os.environ.get("S3_BUCKET")
+    bucket = settings.s3.bucket
 
-    if bucket is None:
-        raise SystemExit("Error: 'S3_BUCKET' environment variable is not set")
+    if not bucket:
+        raise SystemExit("Error: 's3.bucket' is not set in config")
 
     s3_client = build_s3_client()
 

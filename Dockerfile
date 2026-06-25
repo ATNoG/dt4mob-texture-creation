@@ -52,7 +52,7 @@ ENV VIRTUAL_ENV=/venv \
 WORKDIR /app
 
 COPY main.py .
-COPY settings.py config.toml /app/
+COPY settings.py /app/
 COPY src/ /app/src/
 
 ENTRYPOINT ["python", "main.py"]

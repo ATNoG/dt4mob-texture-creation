@@ -42,88 +42,11 @@ The tool performs the following steps:
 
 5. **Export** - Renders and exports both textured meshes as `.gltf` files.
 
-## Prerequisites
+## Configuration
 
-This project uses [uv](https://github.com/astral-sh/uv) to manage its dependencies and
-Python environment.
+This section can be found in the [user guide](./docs/user.md)
 
-First, install `uv` on your system. Then, from the root of the project, install the
-dependencies by running:
 
-```bash
-uv sync
-```
+## Deployment
 
-Then, after installing/updating the dependencies, the program can be executed by running:
-
-```bash
-uv run main.py
-```
-
-## CLI Usage
-
-The tool requires a `--mesh` argument, and all other parameters can be provided either
-via CLI arguments or environment variables.
-
-```bash
-uv run main.py --mesh <path_to_ply> --tenant <tenant> --id <id> --username <username> --password <password>
-```
-
-### Arguments
-
-| Argument    | Description                   | Required | Environment Variable |
-|-------------|-------------------------------|----------|----------------------|
-| `--mesh`    | Path to the input PLY file    | No*      | -                    |
-| `--tenant`  | Tenant identifier             | Yes      | `TENANT`             |
-| `--id`      | Resource ID                   | Yes      | `ID`                 |
-| `--username`| Authentication username        | Yes      | `USERNAME`           |
-| `--password`| Authentication password        | Yes      | `PASSWORD`           |
-
-Priority: CLI argument > environment variable
-
-### Environment Variables
-
-| Variable           | Required | Description                                    |
-|--------------------|----------|------------------------------------------------|
-| `BASE_URL`         | Yes      | API base URL                                   |
-| `S3_ENDPOINT`      | Yes      | S3-compatible endpoint URL                     |
-| `S3_ACCESS_KEY`    | Yes      | S3 access key                                  |
-| `S3_SECRET_KEY`    | Yes      | S3 secret key                                  |
-| `S3_BUCKET`        | Yes      | S3 bucket name for output files                |
-| `TENANT`           | Yes      | Tenant identifier (can also use `--tenant`)    |
-| `ID`               | Yes      | Resource ID (can also use `--id`)              |
-| `USERNAME`         | Yes      | Auth username (can also use `--username`)       |
-| `PASSWORD`         | Yes      | Auth password (can also use `--password`)       |
-| `S3_INPUT_BUCKET`  | No       | S3 bucket for input mesh (fallback if API fails) |
-| `S3_INPUT_KEY`     | No       | S3 key for input mesh (fallback if API fails)   |
-
-### Example
-
-```bash
-uv run main.py \
-  --mesh ./meshes/model.ply \
-  --tenant mycompany \
-  --id 12345 \
-  --username admin \
-  --password secret
-```
-
-Or using environment variables:
-
-```bash
-export BASE_URL=https://api.example.com
-export S3_ENDPOINT=http://localhost:8333
-export S3_ACCESS_KEY=your-access-key
-export S3_SECRET_KEY=your-secret-key
-export S3_BUCKET=texturemap
-export TENANT=mycompany
-export ID=12345
-export USERNAME=admin
-export PASSWORD=secret
-
-uv run main.py --mesh ./meshes/model.ply
-```
-
-The output files will be saved to your S3 bucket as:
-- `{resource_id}_alarmist.gltf` - Quality flag based texture
-- `{resource_id}_displacement.gltf` - Displacement based texture
+This section can be found in the [administration guide](./docs/admin.md)
